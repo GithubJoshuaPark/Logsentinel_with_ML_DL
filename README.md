@@ -57,6 +57,48 @@ git_for_submit/
 
 ---
 
+## 프로젝트 아키텍처 및 데이터 흐름
+
+```mermaid
+flowchart TD
+    RawLog["실시간 로그 스트림 (Raw Logs)"]
+    
+    subgraph Preprocess ["1단계: 텍스트 전처리 (NLP)"]
+        Regex["Regex Parser (IP, Timestamp, UUID 정제 및 템플릿화)"]
+        Tfidf["TF-IDF Vectorizer (단어 수치 벡터화)"]
+        WeightCalc["Class Weight 산출 (데이터 불균형 분석)"]
+    end
+    
+    subgraph Detection ["2단계: 이상 탐지 (ML)"]
+        IsoForest["Isolation Forest (비지도 학습 아노말리 필터)"]
+    end
+    
+    subgraph Classification ["3단계: 장애 자동 분류 (DL)"]
+        LSTM["PyTorch LSTM/GRU (시계열 다중 클래스 분류기)"]
+        WeightedLoss["Weighted Cross Entropy Loss (불균형 보정 학습)"]
+    end
+    
+    subgraph Servicing ["4단계: 실시간 서빙 (API)"]
+        FastAPI["FastAPI Web Server"]
+        JSON["JSON Response (이상여부/장애카테고리/신뢰도)"]
+    end
+
+    %% 연결 관계
+    RawLog --> Regex
+    Regex --> Tfidf
+    Tfidf --> WeightCalc
+    WeightCalc --> IsoForest
+    
+    IsoForest -->|정상 로그| FastAPI
+    IsoForest -->|이상/경고 로그| LSTM
+    
+    LSTM --> WeightedLoss
+    WeightedLoss --> FastAPI
+    FastAPI --> JSON
+```
+
+---
+
 ## 🛠️ Installation & Setup (빠른 실행 방법)
 
 본 프로젝트는 의존성 라이브러리가 로컬 가상환경에 격리되어 안전하게 설치되도록 자동화 셋업 스크립트를 제공합니다.
